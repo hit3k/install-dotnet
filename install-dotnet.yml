@@ -4,9 +4,9 @@
 
 - yum: name=yum-utils state=present
 
-- shell: rpm --import "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF"
-- shell: yum-config-manager --add-repo http://download.mono-project.com/repo/centos/
-- shell: yum-config-manager --enable http://download.mono-project.com/repo/centos/
+- command: rpm --import "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF"
+- command: yum-config-manager --add-repo http://download.mono-project.com/repo/centos/
+- command: yum-config-manager --enable http://download.mono-project.com/repo/centos/
 
 - name: "Get latest RPM for libpng15 (check fedora website for updated URL)"
   get_url:
@@ -23,9 +23,8 @@
 - name: Installing dotnet
   file: path=/opt/dotnet state=directory
 
-- shell: rpm --import https://packages.microsoft.com/keys/microsoft.asc
-
-- shell: sh -c 'echo -e "[packages-microsoft-com-prod]\nname=packages-microsoft-com-prod \nbaseurl=https://packages.microsoft.com/yumrepos/microsoft-rhel7.3-prod\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/dotnetdev.repo'
+- command: rpm --import https://packages.microsoft.com/keys/microsoft.asc
+- command: sh -c 'echo -e "[packages-microsoft-com-prod]\nname=packages-microsoft-com-prod \nbaseurl=https://packages.microsoft.com/yumrepos/microsoft-rhel7.3-prod\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/dotnetdev.repo'
 
 - yum: name={{item}} state=present
   with_items:
@@ -48,7 +47,15 @@
     validate_certs: no
     timeout: 60
 
-- shell: rpm -i --replacefiles  /tmp/openssl-libs-1.1.0f-9.fc27.x86_64.rpm
+- name: Check if openssl-libs-1.1.0f-9.fc27.x86_64.rpm is installed
+  command: rpm -q openssl-libs-1.1.0f-9.fc27.x86_64.rpm
+  ignore_errors: true
+  no_log: true
+  failed_when: false
+  register: rpm_check
+
+- command: rpm -i --replacefiles  /tmp/openssl-libs-1.1.0f-9.fc27.x86_64.rpm
+  when: rpm_check.stdout.find('is already installed') > -1
 
 - yum: name=dotnet-sdk-2.0.0 state=present
 
@@ -61,7 +68,7 @@
     validate_certs: no
     timeout: 60
 
-- shell: tar -xvzf OctopusTools.4.24.2.rhel.7-x64.tar.gz --directory /opt/octopus
+- command: tar -xvzf /tmp/OctopusTools.4.24.2.rhel.7-x64.tar.gz --directory /opt/octopus
 
 - name: Add symlink /usr/bin/octo.exe
   file: src=/opt/octopus/Octo
